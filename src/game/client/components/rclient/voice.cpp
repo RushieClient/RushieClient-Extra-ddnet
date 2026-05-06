@@ -186,6 +186,7 @@ static constexpr uint32_t VOICE_MODE_MASK = 0x3u;
 static constexpr uint8_t VOICE_FLAG_VAD = 1 << 0;
 static constexpr uint8_t VOICE_FLAG_LOOPBACK = 1 << 1;
 static constexpr int VOICE_AUTH_CACHE_MAX_AGE_SECONDS = 45;
+static constexpr int VOICE_AUDIO_RETRY_SECONDS = 10;
 #if defined(CONF_RNNOISE)
 static constexpr int RNNOISE_FRAME_SAMPLES = 480;
 #endif
@@ -2384,7 +2385,7 @@ void CRClientVoice::WorkerLoop()
 #endif
 		if(!ShouldEnsureAudio && (CaptureNeedsRetry || m_OutputUnavailable))
 		{
-			const int64_t RetryInterval = time_freq();
+			const int64_t RetryInterval = time_freq() * VOICE_AUDIO_RETRY_SECONDS;
 			const int64_t Now = time_get();
 			if(m_LastAudioRetryAttempt == 0 || Now - m_LastAudioRetryAttempt >= RetryInterval)
 				ShouldEnsureAudio = true;
