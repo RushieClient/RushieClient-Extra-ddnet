@@ -852,7 +852,7 @@ bool CRClientVoice::EnsureAudio()
 
 		if(OutputMissing)
 		{
-			if(!m_OutputUnavailable)
+			if(!m_OutputUnavailable && VoiceDebugLoggingEnabled())
 			{
 				char aError[256];
 				str_format(aError, sizeof(aError), "Output device not found: '%s'", m_aOutputDeviceName);
@@ -862,7 +862,7 @@ bool CRClientVoice::EnsureAudio()
 		}
 		else if(NoOutputDevices)
 		{
-			if(!m_OutputUnavailable)
+			if(!m_OutputUnavailable && VoiceDebugLoggingEnabled())
 				VoiceLogDebugOnce(m_aAudioErrorLog, sizeof(m_aAudioErrorLog), "No output devices available");
 			m_OutputUnavailable = true;
 		}
@@ -873,7 +873,7 @@ bool CRClientVoice::EnsureAudio()
 			m_OutputDevice = SDL_OpenAudioDevice(pOutputName, 0, &WantOutput, &m_OutputSpec, 0);
 			if(!m_OutputDevice)
 			{
-				if(!m_OutputUnavailable)
+				if(!m_OutputUnavailable && VoiceDebugLoggingEnabled())
 				{
 					char aError[256];
 					str_format(aError, sizeof(aError), "Failed to open output device: %s", SDL_GetError());
@@ -919,7 +919,7 @@ bool CRClientVoice::EnsureAudio()
 
 		if(InputMissing)
 		{
-			if(!m_CaptureUnavailable)
+			if(!m_CaptureUnavailable && VoiceDebugLoggingEnabled())
 			{
 				char aError[256];
 				str_format(aError, sizeof(aError), "Input device not found: '%s'", m_aInputDeviceName);
@@ -929,7 +929,7 @@ bool CRClientVoice::EnsureAudio()
 		}
 		else if(NoCaptureDevices)
 		{
-			if(!m_CaptureUnavailable)
+			if(!m_CaptureUnavailable && VoiceDebugLoggingEnabled())
 				VoiceLogDebugOnce(m_aAudioErrorLog, sizeof(m_aAudioErrorLog), "No capture devices available");
 			m_CaptureUnavailable = true;
 		}
@@ -940,7 +940,7 @@ bool CRClientVoice::EnsureAudio()
 			m_CaptureDevice = SDL_OpenAudioDevice(pInputName, 1, &WantCapture, &m_CaptureSpec, 0);
 			if(!m_CaptureDevice)
 			{
-				if(!m_CaptureUnavailable)
+				if(!m_CaptureUnavailable && VoiceDebugLoggingEnabled())
 				{
 					char aError[256];
 					str_format(aError, sizeof(aError), "Failed to open capture device: %s", SDL_GetError());
@@ -1431,11 +1431,14 @@ void CRClientVoice::ProcessCapture()
 {
 	if(!m_ServerAddrValid.load() || !m_Socket)
 	{
-		char aReason[256];
-		str_format(aReason, sizeof(aReason), "voice relay auth blocked: relay_addr=%s socket=%s",
-			m_ServerAddrValid.load() ? "ok" : "unresolved",
-			m_Socket ? "ok" : "missing");
-		VoiceLogDebugOnce(m_aTxBlockLog, sizeof(m_aTxBlockLog), aReason);
+		if(VoiceDebugLoggingEnabled())
+		{
+			char aReason[256];
+			str_format(aReason, sizeof(aReason), "voice relay auth blocked: relay_addr=%s socket=%s",
+				m_ServerAddrValid.load() ? "ok" : "unresolved",
+				m_Socket ? "ok" : "missing");
+			VoiceLogDebugOnce(m_aTxBlockLog, sizeof(m_aTxBlockLog), aReason);
+		}
 		return;
 	}
 
@@ -1507,7 +1510,7 @@ void CRClientVoice::ProcessCapture()
 	if(m_pGameClient)
 		m_pGameClient->m_RClientIndicator.GetCachedVoiceAuth(VoiceAuthTimestamp, VoiceAuthHash, VoiceAuthReceivedTime);
 	const bool VoiceAuthValid = VoiceAuthHash != 0 && VoiceAuthCacheFresh(VoiceAuthReceivedTime);
-	if(!VoiceAuthValid)
+	if(!VoiceAuthValid && VoiceDebugLoggingEnabled())
 	{
 		char aReason[256];
 		if(VoiceAuthHash == 0 || VoiceAuthReceivedTime == 0)
@@ -1583,11 +1586,14 @@ void CRClientVoice::ProcessCapture()
 
 	if(!m_CaptureDevice || !m_pEncoder)
 	{
-		char aReason[256];
-		str_format(aReason, sizeof(aReason), "voice capture blocked: capture=%s encoder=%s, receive-only mode stays active",
-			m_CaptureDevice ? "ok" : "missing",
-			m_pEncoder ? "ok" : "missing");
-		VoiceLogDebugOnce(m_aTxBlockLog, sizeof(m_aTxBlockLog), aReason);
+		if(VoiceDebugLoggingEnabled())
+		{
+			char aReason[256];
+			str_format(aReason, sizeof(aReason), "voice capture blocked: capture=%s encoder=%s, receive-only mode stays active",
+				m_CaptureDevice ? "ok" : "missing",
+				m_pEncoder ? "ok" : "missing");
+			VoiceLogDebugOnce(m_aTxBlockLog, sizeof(m_aTxBlockLog), aReason);
+		}
 		UpdateMicLevel(0.0f);
 		m_VadActive = false;
 		m_VadReleaseDeadline = 0;
@@ -1793,11 +1799,14 @@ void CRClientVoice::ProcessIncoming()
 {
 	if(!m_OutputDevice || !m_Socket)
 	{
-		char aReason[256];
-		str_format(aReason, sizeof(aReason), "voice rx blocked: output=%s socket=%s",
-			m_OutputDevice ? "ok" : "missing",
-			m_Socket ? "ok" : "missing");
-		VoiceLogDebugOnce(m_aRxBlockLog, sizeof(m_aRxBlockLog), aReason);
+		if(VoiceDebugLoggingEnabled())
+		{
+			char aReason[256];
+			str_format(aReason, sizeof(aReason), "voice rx blocked: output=%s socket=%s",
+				m_OutputDevice ? "ok" : "missing",
+				m_Socket ? "ok" : "missing");
+			VoiceLogDebugOnce(m_aRxBlockLog, sizeof(m_aRxBlockLog), aReason);
+		}
 		return;
 	}
 
