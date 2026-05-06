@@ -1429,12 +1429,10 @@ void CRClientVoice::UpdateClientSnapshot()
 
 void CRClientVoice::ProcessCapture()
 {
-	if(!m_CaptureDevice || !m_pEncoder || !m_ServerAddrValid.load() || !m_Socket)
+	if(!m_ServerAddrValid.load() || !m_Socket)
 	{
 		char aReason[256];
-		str_format(aReason, sizeof(aReason), "voice tx blocked: capture=%s encoder=%s relay_addr=%s socket=%s",
-			m_CaptureDevice ? "ok" : "missing",
-			m_pEncoder ? "ok" : "missing",
+		str_format(aReason, sizeof(aReason), "voice relay auth blocked: relay_addr=%s socket=%s",
 			m_ServerAddrValid.load() ? "ok" : "unresolved",
 			m_Socket ? "ok" : "missing");
 		VoiceLogDebugOnce(m_aTxBlockLog, sizeof(m_aTxBlockLog), aReason);
@@ -1581,6 +1579,21 @@ void CRClientVoice::ProcessCapture()
 		m_LastTokenHashSent = Config.m_RiVoiceTokenHash;
 		m_LastVoiceAuthTimestampSent = VoiceAuthTimestamp;
 		m_LastVoiceAuthHashSent = VoiceAuthHash;
+	}
+
+	if(!m_CaptureDevice || !m_pEncoder)
+	{
+		char aReason[256];
+		str_format(aReason, sizeof(aReason), "voice capture blocked: capture=%s encoder=%s, receive-only mode stays active",
+			m_CaptureDevice ? "ok" : "missing",
+			m_pEncoder ? "ok" : "missing");
+		VoiceLogDebugOnce(m_aTxBlockLog, sizeof(m_aTxBlockLog), aReason);
+		UpdateMicLevel(0.0f);
+		m_VadActive = false;
+		m_VadReleaseDeadline = 0;
+		m_PttReleaseDeadline.store(0);
+		m_TxWasActive = false;
+		return;
 	}
 
 	if(MicMuted)
