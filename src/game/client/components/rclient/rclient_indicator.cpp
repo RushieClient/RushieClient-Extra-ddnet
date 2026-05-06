@@ -584,6 +584,7 @@ void CRClientIndicator::FinishRClientUsers()
 	{
 		m_VoiceAuthTimestamp.store(VoiceTimestamp);
 		m_VoiceAuthHash.store(VoiceHash);
+		m_VoiceAuthReceivedTime.store(time_get());
 	}
 	else
 	{
@@ -632,6 +633,7 @@ void CRClientIndicator::ClearVoiceAuth()
 {
 	m_VoiceAuthTimestamp.store(0);
 	m_VoiceAuthHash.store(0);
+	m_VoiceAuthReceivedTime.store(0);
 }
 
 void CRClientIndicator::ClearUsers()
@@ -690,9 +692,10 @@ bool CRClientIndicator::IsPlayerRClientVoiceMuted(int ClientId)
 	return false;
 }
 
-bool CRClientIndicator::GetCachedVoiceAuth(uint32_t &Timestamp, uint64_t &Hash) const
+bool CRClientIndicator::GetCachedVoiceAuth(uint32_t &Timestamp, uint64_t &Hash, int64_t &ReceivedTime) const
 {
 	Timestamp = m_VoiceAuthTimestamp.load();
 	Hash = m_VoiceAuthHash.load();
-	return Timestamp != 0 && Hash != 0;
+	ReceivedTime = m_VoiceAuthReceivedTime.load();
+	return Timestamp != 0 && Hash != 0 && ReceivedTime != 0;
 }

@@ -185,7 +185,7 @@ static constexpr uint32_t VOICE_MODE_SHIFT = 30;
 static constexpr uint32_t VOICE_MODE_MASK = 0x3u;
 static constexpr uint8_t VOICE_FLAG_VAD = 1 << 0;
 static constexpr uint8_t VOICE_FLAG_LOOPBACK = 1 << 1;
-static constexpr int VOICE_AUTH_MAX_AGE_SECONDS = 60;
+static constexpr int VOICE_AUTH_CACHE_MAX_AGE_SECONDS = 45;
 #if defined(CONF_RNNOISE)
 static constexpr int RNNOISE_FRAME_SAMPLES = 480;
 #endif
@@ -287,13 +287,12 @@ static float SanitizeFloat(float Value)
 	return Value;
 }
 
-static bool VoiceAuthFresh(uint32_t Timestamp)
+static bool VoiceAuthCacheFresh(int64_t ReceivedTime)
 {
-	if(Timestamp == 0)
+	if(ReceivedTime == 0)
 		return false;
-	const int64_t Now = time_timestamp();
-	const int64_t Delta = Now - (int64_t)Timestamp;
-	return Delta >= -VOICE_AUTH_MAX_AGE_SECONDS && Delta <= VOICE_AUTH_MAX_AGE_SECONDS;
+	const int64_t Age = time_get() - ReceivedTime;
+	return Age >= 0 && Age <= time_freq() * VOICE_AUTH_CACHE_MAX_AGE_SECONDS;
 }
 
 static float VoiceFramePeak(const int16_t *pSamples, int Count)
@@ -1289,6 +1288,9 @@ void CRClientVoice::Shutdown()
 	m_aEncoderErrorLog[0] = '\0';
 	m_aServerAddrErrorLog[0] = '\0';
 	m_aDecoderErrorLog[0] = '\0';
+	m_aTxBlockLog[0] = '\0';
+	m_aRxBlockLog[0] = '\0';
+	m_aAuthBlockLog[0] = '\0';
 	m_AudioSubsystemInitializedByVoice = false;
 	m_PingMs.store(-1);
 	m_MicLevel.store(0.0f);
@@ -1428,7 +1430,16 @@ void CRClientVoice::UpdateClientSnapshot()
 void CRClientVoice::ProcessCapture()
 {
 	if(!m_CaptureDevice || !m_pEncoder || !m_ServerAddrValid.load() || !m_Socket)
+	{
+		char aReason[256];
+		str_format(aReason, sizeof(aReason), "voice tx blocked: capture=%s encoder=%s relay_addr=%s socket=%s",
+			m_CaptureDevice ? "ok" : "missing",
+			m_pEncoder ? "ok" : "missing",
+			m_ServerAddrValid.load() ? "ok" : "unresolved",
+			m_Socket ? "ok" : "missing");
+		VoiceLogDebugOnce(m_aTxBlockLog, sizeof(m_aTxBlockLog), aReason);
 		return;
+	}
 
 	SRClientVoiceConfigSnapshot Config;
 	GetConfigSnapshot(Config);
@@ -1494,9 +1505,28 @@ void CRClientVoice::ProcessCapture()
 
 	uint32_t VoiceAuthTimestamp = 0;
 	uint64_t VoiceAuthHash = 0;
+	int64_t VoiceAuthReceivedTime = 0;
 	if(m_pGameClient)
-		m_pGameClient->m_RClientIndicator.GetCachedVoiceAuth(VoiceAuthTimestamp, VoiceAuthHash);
-	const bool VoiceAuthValid = VoiceAuthHash != 0 && VoiceAuthFresh(VoiceAuthTimestamp);
+		m_pGameClient->m_RClientIndicator.GetCachedVoiceAuth(VoiceAuthTimestamp, VoiceAuthHash, VoiceAuthReceivedTime);
+	const bool VoiceAuthValid = VoiceAuthHash != 0 && VoiceAuthCacheFresh(VoiceAuthReceivedTime);
+	if(!VoiceAuthValid)
+	{
+		char aReason[256];
+		if(VoiceAuthHash == 0 || VoiceAuthReceivedTime == 0)
+		{
+			str_copy(aReason, "voice auth unavailable: no cached _voice_auth from indicator collector", sizeof(aReason));
+		}
+		else
+		{
+			const int64_t Age = time_get() - VoiceAuthReceivedTime;
+			const int64_t AgeSeconds = Age >= 0 ? Age / time_freq() : -1;
+			str_format(aReason, sizeof(aReason), "voice auth cache expired locally: ts=%u age=%llds max=%ds",
+				VoiceAuthTimestamp,
+				(long long)AgeSeconds,
+				VOICE_AUTH_CACHE_MAX_AGE_SECONDS);
+		}
+		VoiceLogDebugOnce(m_aAuthBlockLog, sizeof(m_aAuthBlockLog), aReason);
+	}
 	const bool TokenChanged = Config.m_RiVoiceTokenHash != m_LastTokenHashSent;
 	const bool VoiceAuthChanged = VoiceAuthTimestamp != m_LastVoiceAuthTimestampSent || VoiceAuthHash != m_LastVoiceAuthHashSent;
 	const bool NeedKeepalive = m_LastKeepalive == 0 || Now - m_LastKeepalive > time_freq() * 2;
@@ -1749,7 +1779,14 @@ void CRClientVoice::ProcessCapture()
 void CRClientVoice::ProcessIncoming()
 {
 	if(!m_OutputDevice || !m_Socket)
+	{
+		char aReason[256];
+		str_format(aReason, sizeof(aReason), "voice rx blocked: output=%s socket=%s",
+			m_OutputDevice ? "ok" : "missing",
+			m_Socket ? "ok" : "missing");
+		VoiceLogDebugOnce(m_aRxBlockLog, sizeof(m_aRxBlockLog), aReason);
 		return;
+	}
 
 	if(m_pClient && m_pClient->State() == IClient::STATE_ONLINE && VoiceIsLoopbackAddr(m_pClient->ServerAddress()))
 	{
