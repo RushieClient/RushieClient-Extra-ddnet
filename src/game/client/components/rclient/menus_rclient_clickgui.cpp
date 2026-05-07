@@ -257,6 +257,19 @@ bool CMenusRClientClickGui::OnInput(const IInput::CEvent &Event)
 		return true;
 	}
 
+	if(Event.m_Flags & IInput::FLAG_PRESS)
+	{
+		const int KeyModifierMask = CBinds::GetModifierMaskOfKey(Event.m_Key);
+		const int ModifierMask = CBinds::GetModifierMask(Input()) & ~KeyModifierMask;
+		const char *pBind = GameClient()->m_Binds.Get(Event.m_Key, ModifierMask);
+
+		if(pBind && str_find(pBind, "toggle_rclient_clickgui"))
+		{
+			SetActive(false);
+			return true;
+		}
+	}
+
 	if(GameClient()->m_GameConsole.IsActive() || GameClient()->m_Menus.IsActive() || GameClient()->m_Chat.IsActive() || GameClient()->m_Emoticon.IsActive())
 		return false;
 
