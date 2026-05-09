@@ -221,6 +221,9 @@ void CMenusRClientClickGui::OpenVoiceMix(int Tab)
 
 void CMenusRClientClickGui::OnReset()
 {
+	if(m_Active || m_MouseUnlocked)
+		Ui()->ClosePopupMenus();
+
 	m_Active = false;
 	m_MouseUnlocked = false;
 	m_LastMousePos = std::nullopt;
@@ -251,6 +254,10 @@ bool CMenusRClientClickGui::OnInput(const IInput::CEvent &Event)
 	if(!IsActive())
 		return false;
 
+	const bool UiBlocked = GameClient()->m_GameConsole.IsActive() || GameClient()->m_Menus.IsActive() || GameClient()->m_Chat.IsActive() || GameClient()->m_Emoticon.IsActive();
+	if(UiBlocked)
+		return false;
+
 	if(Event.m_Flags & IInput::FLAG_PRESS && Event.m_Key == KEY_ESCAPE)
 	{
 		HandleEscape();
@@ -269,9 +276,6 @@ bool CMenusRClientClickGui::OnInput(const IInput::CEvent &Event)
 			return true;
 		}
 	}
-
-	if(GameClient()->m_GameConsole.IsActive() || GameClient()->m_Menus.IsActive() || GameClient()->m_Chat.IsActive() || GameClient()->m_Emoticon.IsActive())
-		return false;
 
 	Ui()->OnInput(Event);
 	if(Event.m_Key == KEY_MOUSE_1 && (Event.m_Flags & (IInput::FLAG_PRESS | IInput::FLAG_RELEASE)) != 0 && GameClient()->m_MusicIsland.OnInput(Event))
@@ -293,6 +297,12 @@ vec2 CMenusRClientClickGui::MouseCursorPos() const
 
 bool CMenusRClientClickGui::HandleEscape()
 {
+	if(Ui()->IsPopupOpen())
+	{
+		Ui()->ClosePopupMenus();
+		return true;
+	}
+
 	if(m_CurrentTab == CLICKGUI_TAB_SETTINGS && m_OpenSettingsSection < 0)
 	{
 		const bool SearchActive = Ui()->CheckActiveItem(&m_SearchInput);
@@ -877,6 +887,9 @@ void CMenusRClientClickGui::OnRender()
 		if(m_CurrentTab == CLICKGUI_TAB_INFO)
 			RenderClickGuiRushieInfo(Body, PixelSize);
 	}
+
+	if(!UiBlocked)
+		Ui()->RenderPopupMenus();
 
 	if(m_MouseUnlocked && !UiBlocked)
 		RenderTools()->RenderCursor(Ui()->MousePos(), 24.0f);
