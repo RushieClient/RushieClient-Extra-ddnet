@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <atomic>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -41,6 +42,7 @@ class CRClientIndicator : public CComponent
 	int64_t m_LastPollAttempt = 0;
 	std::atomic<uint32_t> m_VoiceAuthTimestamp{0};
 	std::atomic<uint64_t> m_VoiceAuthHash{0};
+	std::atomic<int64_t> m_VoiceAuthReceivedTime{0};
 
 	bool m_WasOnline = false;
 	std::string m_LastServerAddress;
@@ -57,7 +59,7 @@ public:
 	bool IsPlayerRClient(int ClientId);
 	bool IsPlayerRClientVoiceEnabled(int ClientId);
 	bool IsPlayerRClientVoiceMuted(int ClientId);
-	bool GetCachedVoiceAuth(uint32_t &Timestamp, uint64_t &Hash) const;
+	bool GetCachedVoiceAuth(uint32_t &Timestamp, uint64_t &Hash, int64_t &ReceivedTime) const;
 };
 
 #endif // RCLIENT_RCLIENT_INDICATOR_H
