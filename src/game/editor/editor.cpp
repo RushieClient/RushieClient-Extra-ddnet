@@ -2479,15 +2479,15 @@ void CEditor::DoMapEditor(CUIRect View)
 	bool ShouldTouchPan = false;
 	if(m_Dialog == DIALOG_NONE && CLineInput::GetActiveInput() == nullptr && vTouchFingerStates.size() == 2)
 	{
-		const vec2 ScreenSize = vec2(Ui()->Screen()->w, Ui()->Screen()->h);
-		const vec2 TouchPosition0 = vTouchFingerStates[0].m_Position * ScreenSize;
-		const vec2 TouchPosition1 = vTouchFingerStates[1].m_Position * ScreenSize;
+		const CUIRect *pScreen = Ui()->Screen();
+		const vec2 TouchPosition0 = vec2(pScreen->x, pScreen->y) + vTouchFingerStates[0].m_Position * vec2(pScreen->w, pScreen->h);
+		const vec2 TouchPosition1 = vec2(pScreen->x, pScreen->y) + vTouchFingerStates[1].m_Position * vec2(pScreen->w, pScreen->h);
 		const vec2 TouchDelta0 = vTouchFingerStates[0].m_Delta;
 		const vec2 TouchDelta1 = vTouchFingerStates[1].m_Delta;
-		const bool SimilarDirection = dot(TouchDelta0, TouchDelta1) >= 0.0f;
+		const bool SameDirection = dot(TouchDelta0, TouchDelta1) > 0.0f;
 
 		TouchPanDelta = (TouchDelta0 + TouchDelta1) * 0.5f * vec2(Graphics()->WindowWidth(), Graphics()->WindowHeight());
-		ShouldTouchPan = View.Inside(TouchPosition0) && View.Inside(TouchPosition1) && SimilarDirection && TouchPanDelta != vec2(0.0f, 0.0f);
+		ShouldTouchPan = Inside && View.Inside(TouchPosition0) && View.Inside(TouchPosition1) && SameDirection && TouchPanDelta != vec2(0.0f, 0.0f);
 	}
 
 	const bool ShouldMousePan = Ui()->HotItem() == &m_MapEditorId && ((Input()->ModifierIsPressed() && Ui()->MouseButton(0)) || Ui()->MouseButton(2));
@@ -2519,13 +2519,20 @@ void CEditor::DoMapEditor(CUIRect View)
 		if(s_Operation == OP_NONE)
 			m_pContainerPanned = nullptr;
 	}
+	else if(ShouldTouchPan && (Ui()->CheckActiveItem(nullptr) || Ui()->CheckActiveItem(&m_MapEditorId)))
+	{
+		s_Operation = OP_PAN_WORLD;
+		m_pContainerPanned = &m_MapEditorId;
+		Ui()->SetActiveItem(&m_MapEditorId);
+		MapView()->OffsetWorld(-TouchPanDelta * m_MouseWorldScale);
+	}
 
 	if(Inside)
 	{
 		Ui()->SetHotItem(&m_MapEditorId);
 
 		// do global operations like pan and zoom
-		if(Ui()->CheckActiveItem(nullptr) && (Ui()->MouseButton(0) || Ui()->MouseButton(2) || ShouldTouchPan))
+		if((Ui()->CheckActiveItem(nullptr) || (ShouldTouchPan && Ui()->CheckActiveItem(&m_MapEditorId))) && (Ui()->MouseButton(0) || Ui()->MouseButton(2) || ShouldTouchPan))
 		{
 			s_StartWx = wx;
 			s_StartWy = wy;
