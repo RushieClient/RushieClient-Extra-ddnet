@@ -2474,11 +2474,33 @@ void CEditor::DoMapEditor(CUIRect View)
 		MapView()->MapGrid()->OnRender(View);
 	}
 
-	const bool ShouldPan = Ui()->HotItem() == &m_MapEditorId && ((Input()->ModifierIsPressed() && Ui()->MouseButton(0)) || Ui()->MouseButton(2));
+	const std::vector<IInput::CTouchFingerState> &vTouchFingerStates = Input()->TouchFingerStates();
+	vec2 TouchPanDelta = vec2(0.0f, 0.0f);
+	bool ShouldTouchPan = false;
+	if(m_Dialog == DIALOG_NONE && CLineInput::GetActiveInput() == nullptr && vTouchFingerStates.size() == 2)
+	{
+		const vec2 ScreenSize = vec2(Ui()->Screen()->w, Ui()->Screen()->h);
+		const vec2 TouchPosition0 = vTouchFingerStates[0].m_Position * ScreenSize;
+		const vec2 TouchPosition1 = vTouchFingerStates[1].m_Position * ScreenSize;
+		const vec2 TouchDelta0 = vTouchFingerStates[0].m_Delta;
+		const vec2 TouchDelta1 = vTouchFingerStates[1].m_Delta;
+		const bool SimilarDirection = dot(TouchDelta0, TouchDelta1) >= 0.0f;
+
+		TouchPanDelta = (TouchDelta0 + TouchDelta1) * 0.5f * vec2(Graphics()->WindowWidth(), Graphics()->WindowHeight());
+		ShouldTouchPan = View.Inside(TouchPosition0) && View.Inside(TouchPosition1) && SimilarDirection && TouchPanDelta != vec2(0.0f, 0.0f);
+	}
+
+	const bool ShouldMousePan = Ui()->HotItem() == &m_MapEditorId && ((Input()->ModifierIsPressed() && Ui()->MouseButton(0)) || Ui()->MouseButton(2));
+	const bool ShouldPan = ShouldMousePan || ShouldTouchPan;
 	if(m_pContainerPanned == &m_MapEditorId)
 	{
 		// do panning
-		if(ShouldPan)
+		if(ShouldTouchPan)
+		{
+			s_Operation = OP_PAN_WORLD;
+			Ui()->SetActiveItem(&m_MapEditorId);
+		}
+		else if(ShouldMousePan)
 		{
 			if(Input()->ShiftIsPressed())
 				s_Operation = OP_PAN_EDITOR;
@@ -2490,7 +2512,7 @@ void CEditor::DoMapEditor(CUIRect View)
 			s_Operation = OP_NONE;
 
 		if(s_Operation == OP_PAN_WORLD)
-			MapView()->OffsetWorld(-Ui()->MouseDelta() * m_MouseWorldScale);
+			MapView()->OffsetWorld(-(ShouldTouchPan ? TouchPanDelta : Ui()->MouseDelta()) * m_MouseWorldScale);
 		else if(s_Operation == OP_PAN_EDITOR)
 			MapView()->OffsetEditor(-Ui()->MouseDelta() * m_MouseWorldScale);
 
@@ -2503,7 +2525,7 @@ void CEditor::DoMapEditor(CUIRect View)
 		Ui()->SetHotItem(&m_MapEditorId);
 
 		// do global operations like pan and zoom
-		if(Ui()->CheckActiveItem(nullptr) && (Ui()->MouseButton(0) || Ui()->MouseButton(2)))
+		if(Ui()->CheckActiveItem(nullptr) && (Ui()->MouseButton(0) || Ui()->MouseButton(2) || ShouldTouchPan))
 		{
 			s_StartWx = wx;
 			s_StartWy = wy;
