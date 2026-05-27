@@ -16,6 +16,9 @@ void CCustomCommunities::DownloadCustomCommunitiesDDNetInfo()
 	}
 	else
 	{
+		if(!m_Initialized)
+			return;
+
 		if(m_pCustomCommunitiesDDNetInfoTask != nullptr)
 		{
 			m_pCustomCommunitiesDDNetInfoTask->Abort();
@@ -85,6 +88,7 @@ void CCustomCommunities::LoadCustomCommunitiesDDNetInfo()
 
 void CCustomCommunities::OnInit()
 {
+	m_Initialized = true;
 	DownloadCustomCommunitiesDDNetInfo();
 }
 
