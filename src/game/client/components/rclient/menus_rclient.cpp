@@ -1396,6 +1396,13 @@ void CMenus::RenderRushieSettingsSection(CUIRect &Column, ERushieSettingsSection
 			Ui()->DoScrollbarOption(&g_Config.m_RiScoreboardRclientIndicatorSize, &g_Config.m_RiScoreboardRclientIndicatorSize, &Button, RCLocalize("Size of indicator in scoreboard"), -50, 100);
 			Column.HSplitTop(MarginSmall, nullptr, &Column);
 		}
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+		static std::vector<CButtonContainer> s_vIndicatorServerButtons = {{}, {}};
+		DoLine_RadioMenu(Column, RCLocalize("Server:"),
+			s_vIndicatorServerButtons,
+			{"server.rushie-client.ru", "server.rushie.qzz.io"},
+			{0, 1},
+			g_Config.m_RiServerUrl);
 		break;
 	}
 	case SETTINGS_SECTION_EDGE_INFO:
@@ -1980,6 +1987,13 @@ void CMenus::RenderRushieSettingsSection(CUIRect &Column, ERushieSettingsSection
 					GameClient()->m_BindChat.AddBind(BindDefault.m_Bind);
 				}
 			}
+			Column.HSplitTop(MarginSmall, nullptr, &Column);
+			static std::vector<CButtonContainer> s_vVoiceServerButtons = {{}, {}};
+			DoLine_RadioMenu(Column, RCLocalize("Server host:"),
+				s_vVoiceServerButtons,
+				{"server.rushie-client.ru", "server.rushie.qzz.io"},
+				{0, 1},
+				g_Config.m_RiServerUrl);
 			break;
 		}
 		}

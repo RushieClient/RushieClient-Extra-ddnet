@@ -157,7 +157,8 @@ public:
 	void OnShutdown() override;
 
 	static constexpr const char *RCLIENT_URL = "https://rushie-client.ru";
-	static constexpr const char *RCLIENT_VERSION_URL = "https://server.rushie-client.ru/version";
+	static const char *GetServerHost();
+	static const char *GetVersionUrl();
 	char m_aVersionStr[10] = "0";
 
 	// Version check
