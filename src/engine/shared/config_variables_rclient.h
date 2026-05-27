@@ -244,3 +244,6 @@ MACRO_CONFIG_INT(RiHudOneLine, ri_hud_one_line, 1, 0, 1, CFGFLAG_CLIENT | CFGFLA
 // Sound on join
 MACRO_CONFIG_INT(RiJoinSoundEnable, ri_join_sound_enable, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Play highlight chat sound when listed names join the game")
 MACRO_CONFIG_STR(RiJoinSoundNames, ri_join_sound_names, 512, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "Play highlight chat sound when listed names join the game")
+
+// Server URL selection
+MACRO_CONFIG_INT(RiServerUrl, ri_server_url, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Server host (0=server.rushie-client.ru, 1=server.rushie.qzz.io)")

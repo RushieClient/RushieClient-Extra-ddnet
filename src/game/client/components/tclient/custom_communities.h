@@ -11,6 +11,7 @@ class CCustomCommunities : public CComponent
 private:
 	std::shared_ptr<CHttpRequest> m_pCustomCommunitiesDDNetInfoTask = nullptr;
 	json_value *m_pCustomCommunitiesDDNetInfo = nullptr;
+	bool m_Initialized = false;
 	void DownloadCustomCommunitiesDDNetInfo();
 	void LoadCustomCommunitiesDDNetInfo();
 

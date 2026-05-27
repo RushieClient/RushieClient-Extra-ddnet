@@ -18,11 +18,10 @@ static constexpr int POLL_RETRY_SECONDS = 1;
 static constexpr int HTTP_TIMEOUT_MS = 25000;
 static constexpr int HTTP_CONNECT_TIMEOUT_MS = 10000;
 static constexpr int LONGPOLL_TIMEOUT_MS = (POLL_TIMEOUT_SECONDS + 5) * 1000;
-static constexpr const char *RCLIENT_INDICATOR_USERS_URL = "https://server.rushie-client.ru/users.json";
 
 static const char *GetRclientUsersUrl()
 {
-	return RCLIENT_INDICATOR_USERS_URL;
+	return g_Config.m_RiServerUrl == 0 ? "https://server.rushie-client.ru/users.json" : "https://server.rushie.qzz.io/users.json";
 }
 
 static const char *GetRclientClientVersion()

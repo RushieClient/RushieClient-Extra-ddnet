@@ -429,6 +429,16 @@ void CRClient::ConCopySkinFromDdstats(IConsole::IResult *pResult, void *pUserDat
 	pThis->FetchRclientDDstatsProfile();
 }
 
+const char *CRClient::GetServerHost()
+{
+	return g_Config.m_RiServerUrl == 0 ? "server.rushie-client.ru" : "server.rushie.qzz.io";
+}
+
+const char *CRClient::GetVersionUrl()
+{
+	return g_Config.m_RiServerUrl == 0 ? "https://server.rushie-client.ru/version" : "https://server.rushie.qzz.io/version";
+}
+
 bool CRClient::NeedUpdate()
 {
 	return str_comp(m_aVersionStr, "0") != 0;
@@ -439,7 +449,7 @@ void CRClient::FetchRclientVersionCheck()
 	if(m_pRClientVersionCheck && !m_pRClientVersionCheck->Done())
 		return;
 	char aUrl[256];
-	str_copy(aUrl, RCLIENT_VERSION_URL);
+	str_copy(aUrl, GetVersionUrl());
 	m_pRClientVersionCheck = HttpGet(aUrl);
 	m_pRClientVersionCheck->Timeout(CTimeout{20000, 0, 500, 10});
 	m_pRClientVersionCheck->IpResolve(IPRESOLVE::V4);
